@@ -1,0 +1,20 @@
+{
+    "name": "hashed-time-lock-contract",
+    "version": "0.0.1",
+    "description": "Hashed time lock Contracts for Ethereum",
+    "repository": "https://github.com/jxu86/hashed-time-lock-contract",
+    "scripts": {
+      "ganache": "ganache-cli --networkId 4447 --port 7545",
+      "test": "truffle test",
+      "ethereum-htlc": "truffle compile"
+    },
+    "homepage": "https://github.com/jxu86/hashed-time-lock-contract#README.md",
+    "dependencies": {
+      "openzeppelin-solidity": "^2.5.0"
+    },
+    "devDependencies": {
+      "ganache-cli": "^6.12.2",
+      "truffle": "^5.4.10"
+    }
+  }
+  
