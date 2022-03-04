@@ -40,31 +40,28 @@ contract('HashedTimeLockETH', accounts => {
             }
         )
         // console.log("txReceipt=>", txReceipt)
-        const logArgs = txLogArgs(txReceipt)
+        // const logArgs = txLogArgs(txReceipt)
     
-        const contractId = logArgs.contractId
+        // const contractId = logArgs.contractId
+        // assert(isSha256Hash(contractId))
+        const contractId = txContractId(txReceipt)
         assert(isSha256Hash(contractId))
-    
-        assert.equal(logArgs.sender, sender)
-        assert.equal(logArgs.receiver, receiver)
+        // assert.equal(logArgs.sender, sender)
+        // assert.equal(logArgs.receiver, receiver)
         // assertEqualBN(logArgs.amount, oneFinney)
 
-        assert.equal(logArgs.hashlock, hashPair.hash)
-        assert.equal(logArgs.timelock, timeLock1Hour)
+        // assert.equal(logArgs.hashlock, hashPair.hash)
+        // assert.equal(logArgs.timelock, timeLock1Hour)
     
-    //   const contractArr = await htlc.getContract.call(contractId)
-    //   const contract = htlcArrayToObj(contractArr)
-    //   assert.equal(contract.sender, sender)
-    //   assert.equal(contract.receiver, receiver)
-    //   assertEqualBN(contract.amount, oneFinney)
-    //   assert.equal(contract.hashlock, hashPair.hash)
-    //   assert.equal(contract.timelock.toNumber(), timeLock1Hour)
-    //   assert.isFalse(contract.withdrawn)
-    //   assert.isFalse(contract.refunded)
-    //   assert.equal(
-    //     contract.preimage,
-    //     '0x0000000000000000000000000000000000000000000000000000000000000000'
-    //   )
+        const contractDeail = await htlc.getContractDetail.call(contractId)
+        const contractDeailObj = htlcArrayToObj(contractDeail)
+        assert.equal(contractDeailObj.sender, sender)
+        assert.equal(contractDeailObj.receiver, receiver)
+        assertEqualBN(contractDeailObj.amount, oneFinney)
+        assert.equal(contractDeailObj.hashlock, hashPair.hash)
+        assert.equal(contractDeailObj.timelock.toNumber(), timeLock1Hour)
+        assert.isFalse(contractDeailObj.isWithdraw)
+        assert.isFalse(contractDeailObj.isRefund)
     })
 
     it('createContract should fail when no ETH sent', async () => {
@@ -77,7 +74,8 @@ contract('HashedTimeLockETH', accounts => {
             })
             assert.fail('expected failure due to 0 value transferred')
         } catch (err) {
-            console.log("err======>", err.message)
+            // console.log("err======>", err.message)
+            // todo add assert
         }
     })
 
@@ -112,12 +110,12 @@ contract('HashedTimeLockETH', accounts => {
         assertEqualBN(await getBalance(receiver), expectedBal,"receiver balance doesn't match")
         const contractArr = await htlc.getContractDetail.call(contractId)
         const contract = htlcArrayToObj(contractArr)
-        assert.isTrue(contract.withdrawn) 
-        assert.isFalse(contract.refunded) 
+        assert.isTrue(contract.isWithdraw) 
+        assert.isFalse(contract.isRefund) 
         // assert.equal(contract.secret, hashPair.secret)
       })
 
-      it.only('refund should pass after timelock expiry', async () => {
+      it('refund should pass after timelock expiry', async () => {
         const hashPair = newSecretHashPair()
         const htlc = await HashedTimeLockETH.new()
         const timelock1Second = nowSeconds() + 1

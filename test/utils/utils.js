@@ -38,9 +38,8 @@ const htlcArrayToObj = c => {
     amount: c[2],
     hashlock: c[3],
     timelock: c[4],
-    withdrawn: c[5],
-    refunded: c[6],
-    preimage: c[7],
+    isWithdraw: c[5],
+    isRefund: c[6]
   }
 }
 
@@ -48,23 +47,38 @@ const htlcERC20ArrayToObj = c => {
   return {
     sender: c[0],
     receiver: c[1],
-    token: c[2],
+    tokenContract: c[2],
     amount: c[3],
     hashlock: c[4],
     timelock: c[5],
-    withdrawn: c[6],
-    refunded: c[7],
-    preimage: c[8],
+    isWithdraw: c[6],
+    isRefund: c[7]
+  }
+}
+
+const htlcERC721ArrayToObj = c => {
+  return {
+    sender: c[0],
+    receiver: c[1],
+    tokenContract: c[2],
+    tokenId: c[3],
+    hashlock: c[4],
+    timelock: c[5],
+    isWithdraw: c[6],
+    isRefund: c[7]
   }
 }
 
 const getBalance = async (address) => web3.utils.toBN(await web3.eth.getBalance(address))
+
+const delayMs = ms => new Promise(resolve => setTimeout(resolve, ms))
 
 module.exports = {
   bufToStr,
   getBalance,
   htlcArrayToObj,
   htlcERC20ArrayToObj,
+  htlcERC721ArrayToObj,
   isSha256Hash,
   newSecretHashPair,
   nowSeconds,
@@ -73,4 +87,5 @@ module.exports = {
   txContractId,
   txGas,
   txLogArgs,
+  delayMs,
 }
