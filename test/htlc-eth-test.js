@@ -17,11 +17,11 @@ const HashedTimeLockETH = artifacts.require('./HashedTimeLockETH.sol')
 const hourSeconds = 3600
 const timeLock1Hour = nowSeconds() + hourSeconds
 const oneFinney = web3.utils.toWei(web3.utils.toBN(1), 'finney')
+const FAILED_MSG = "satisfies all conditions set by Solidity `require` statements"
 
 contract('HashedTimeLockETH', accounts => {
     const sender = accounts[1]
     const receiver = accounts[2]
-    console.log("accounts=>", accounts)
       
     it('createContract should pass create a new contract', async () => {
         const hashPair = newSecretHashPair()
@@ -56,10 +56,9 @@ contract('HashedTimeLockETH', accounts => {
                 from: sender,
                 value: 0,
             })
-            assert.fail('expected failure due to 0 value transferred')
+            assert.fail('should fail when no ETH sent')
         } catch (err) {
-            // console.log("err======>", err.message)
-            // todo add assert
+            assert.isTrue(err.message.includes(FAILED_MSG))
         }
     })
 
@@ -68,14 +67,14 @@ contract('HashedTimeLockETH', accounts => {
         const timelock = nowSeconds() - 1
         const htlc = await HashedTimeLockETH.deployed()
         try {
-          await htlc.newContract(receiver, hashPair.hash, timelock, {
-            from: sender,
-            value: oneFinney,
-          })
+            await htlc.createContract(receiver, hashPair.hash, timelock, {
+                from: sender,
+                value: oneFinney,
+            })
     
-          assert.fail('expected failure when timelock has expired')
+            assert.fail('should fail when time lock has expired')
         } catch (err) {
-          
+            assert.isTrue(err.message.includes(FAILED_MSG))
         }
     })
 
@@ -91,9 +90,9 @@ contract('HashedTimeLockETH', accounts => {
                 from: sender,
                 value: oneFinney,
             })
-            assert.fail('expected failure when the contractId has existed')
+            assert.fail('should fail when contractId has existed')
         } catch (err) {
-          
+            assert.isTrue(err.message.includes(FAILED_MSG))
         }
     })
 
@@ -136,7 +135,7 @@ contract('HashedTimeLockETH', accounts => {
     it('withdraw should fail with wrong secret', async () => {
         const hashPair = newSecretHashPair()
         const htlc = await HashedTimeLockETH.deployed()
-        const newContractTx = await htlc.createContract(
+        const txReceipt = await htlc.createContract(
           receiver,
           hashPair.hash,
           timeLock1Hour,
@@ -145,14 +144,14 @@ contract('HashedTimeLockETH', accounts => {
             value: oneFinney,
           }
         )
-        const contractId = txContractId(newContractTx)
+        const contractId = txContractId(txReceipt)
     
         const wrongSecret = bufToStr(random32())
         try {
-          await htlc.withdraw(contractId, wrongSecret, {from: receiver})
-          assert.fail('expected failure due to 0 value transferred')
+            await htlc.withdraw(contractId, wrongSecret, {from: receiver})
+            assert.fail('should fail with wrong secret')
         } catch (err) {
-        //   assert.isTrue(err.message.startsWith(REQUIRE_FAILED_MSG))
+            assert.isTrue(err.message.includes(FAILED_MSG))
         }
       })
 
@@ -161,7 +160,7 @@ contract('HashedTimeLockETH', accounts => {
         const htlc = await HashedTimeLockETH.deployed()
         const timelock1Second = nowSeconds() + 1
 
-        const newContractTx = await htlc.createContract(
+        const txReceipt = await htlc.createContract(
             receiver,
             hashPair.hash,
             timelock1Second,
@@ -170,15 +169,15 @@ contract('HashedTimeLockETH', accounts => {
             value: oneFinney,
             }
         )
-        const contractId = txContractId(newContractTx)
+        const contractId = txContractId(txReceipt)
 
         await delayMs(2000)
 
         try {
             await htlc.withdraw(contractId, hashPair.secret, {from: receiver})
-            assert.fail('expected failure due to 0 value transferred')
+            assert.fail('should fail when timelock has expired')
         } catch (err) {
-            
+            assert.isTrue(err.message.includes(FAILED_MSG))
         }
 
     })
@@ -219,7 +218,7 @@ contract('HashedTimeLockETH', accounts => {
     it('refund should fail when the timelock has not expiry', async () => {
         const hashPair = newSecretHashPair()
         const htlc = await HashedTimeLockETH.deployed()
-        const newContractTx = await htlc.createContract(
+        const txReceipt = await htlc.createContract(
           receiver,
           hashPair.hash,
           timeLock1Hour,
@@ -228,12 +227,12 @@ contract('HashedTimeLockETH', accounts => {
             value: oneFinney,
           }
         )
-        const contractId = txContractId(newContractTx)
+        const contractId = txContractId(txReceipt)
         try {
             await htlc.refund(contractId, {from: sender})
-            assert.fail('expected failure due to timelock')
+            assert.fail('should fail when the timelock has not expiry')
         } catch (err) {
-            // assert.isTrue(err.message.startsWith(REQUIRE_FAILED_MSG))
+            assert.isTrue(err.message.includes(FAILED_MSG))
         }
-      })
+    })
 })

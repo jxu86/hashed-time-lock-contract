@@ -1,14 +1,9 @@
 const {
-    bufToStr,
-    getBalance,
     htlcERC721ArrayToObj,
     isSha256Hash,
     newSecretHashPair,
     nowSeconds,
-    random32,
     txContractId,
-    txGas,
-    txLogArgs,
     delayMs,
 } = require('./utils/utils')
 const {assertEqualBN} = require('./utils/assert')
@@ -117,7 +112,6 @@ contract('HashedTimeLockERC721', accounts => {
         const contract = htlcERC721ArrayToObj(contractArr)
         assert.isTrue(contract.isWithdraw) // withdrawn set
         assert.isFalse(contract.isRefund) // refunded still false
-        // assert.equal(contract.preimage, hashPair.secret)
     })
 
     it('refund should pass after timelock expiry', async () => {
@@ -137,7 +131,6 @@ contract('HashedTimeLockERC721', accounts => {
 
         await delayMs(3000)
         const balanceBefore = await token721.balanceOf(sender)
-        console.log("balanceBefore=>", balanceBefore)
         await htlc.refund(contractId, {from: sender})
 
         await assertTokenBalance(

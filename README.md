@@ -12,9 +12,6 @@ npm test
 ```
 
 
-
-
-
 ## The main flow diagram
 ### ETH createContract and receiver withdraw
 ![](docs/htlc-eth.jpeg)
@@ -27,3 +24,11 @@ npm test
 
 ### ERC20 createContract and sender refund
 ![](docs/htlc-erc20-refund.jpeg)
+
+
+
+
+
+## TODO
+* Increase unit test coverage
+  

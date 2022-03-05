@@ -1,14 +1,9 @@
 const {
-    bufToStr,
-    getBalance,
     htlcERC20ArrayToObj,
     isSha256Hash,
     newSecretHashPair,
     nowSeconds,
-    random32,
     txContractId,
-    txGas,
-    txLogArgs,
     delayMs,
 } = require('./utils/utils')
 const {assertEqualBN} = require('./utils/assert')
@@ -18,6 +13,7 @@ const TestERC20 = artifacts.require('./erc-token/TestERC20.sol')
 const hourSeconds = 3600
 const timeLock1Hour = nowSeconds() + hourSeconds
 const tokenAmount = 10
+const FAILED_MSG = "satisfies all conditions set by Solidity `require` statements"
 
 contract('HashedTimeLockERC20', accounts => {
     const sender = accounts[1]
@@ -40,7 +36,7 @@ contract('HashedTimeLockERC20', accounts => {
         await assertTokenBalance(
             sender,
             initialBalance,
-            'balance not transferred in before()'
+            'balance not transferred in before'
         )
     })
 
@@ -85,9 +81,48 @@ contract('HashedTimeLockERC20', accounts => {
         assert.isFalse(contractDeailObj.isRefund)
     })
 
+    it('createContract should fail when amount = 0', async () => {
+        // approve htlc for one token but send amount as 0
+        const hashPair = newSecretHashPair()
+        await token.approve(htlc.address, 1, {from: sender})
+        try {
+            await htlc.createContract(
+                receiver,
+                token.address,
+                0,
+                hashPair.hash,
+                timeLock1Hour,
+                {
+                    from: sender,
+                }
+            )
+            assert.fail('should fail when amount = 0')
+          } catch (err) {
+            assert.isTrue(err.message.includes(FAILED_MSG))
+          }
+      })
+
+      it('createContract should fail with no approve', async () => {
+        const hashPair = newSecretHashPair()
+        try {
+            await htlc.createContract(
+                receiver,
+                token.address,
+                tokenAmount,
+                hashPair.hash,
+                timeLock1Hour,
+                {
+                    from: sender,
+                }
+            )
+            assert.fail('should fail with no approve')
+        } catch (err) {
+            assert.isTrue(err.message.includes(FAILED_MSG))
+        }
+      })
     
 
-    it('withdraw should send receiver funds when given the correct secret', async () => {
+    it('withdraw should pass with correct secret', async () => {
         const hashPair = newSecretHashPair()
         const txReceipt = await createContract({hashlock: hashPair.hash})
         const contractId = txContractId(txReceipt)
@@ -108,13 +143,10 @@ contract('HashedTimeLockERC20', accounts => {
         const contract = htlcERC20ArrayToObj(contractArr)
         assert.isTrue(contract.isWithdraw) // withdrawn set
         assert.isFalse(contract.isRefund) // refunded still false
-        // assert.equal(contract.preimage, hashPair.secret)
     })
 
     it('refund should pass after timelock expiry', async () => {
         const hashPair = newSecretHashPair()
-        // const curBlock = await web3.eth.getBlock('latest')
-        // const timelock1Sec = curBlock.timestamp + 1
         const timelock1Sec = nowSeconds() + 1
     
         await token.approve(htlc.address, tokenAmount, {from: sender})
@@ -126,7 +158,6 @@ contract('HashedTimeLockERC20', accounts => {
 
         await delayMs(3000)
         const balanceBefore = await token.balanceOf(sender)
-        console.log("balanceBefore=>", balanceBefore)
         await htlc.refund(contractId, {from: sender})
 
         await assertTokenBalance(
