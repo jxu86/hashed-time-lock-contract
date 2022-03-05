@@ -12,6 +12,9 @@ contract HashedTimeLockETH {
         uint timelock
     );
 
+    event HTLCWithdraw(bytes32 indexed contractId);
+    event HTLCRefund(bytes32 indexed contractId);
+
     struct HTLContract {
         address payable sender;    // 
         address payable receiver;  // 
@@ -90,7 +93,7 @@ contract HashedTimeLockETH {
         c.isWithdraw = true;
         c.receiver.transfer(c.amount);
 
-        // todo emit event
+        emit HTLCWithdraw(contractId);
 
         return true;
     }
@@ -111,7 +114,7 @@ contract HashedTimeLockETH {
         c.isRefund = true;
         c.sender.transfer(c.amount);
 
-        // todo emit event
+        emit HTLCRefund(contractId);
 
         return true;
 

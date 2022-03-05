@@ -12,6 +12,8 @@ contract HashedTimeLockERC721 {
         bytes32 hashlock,
         uint timelock
     );
+    event HTLCWithdraw(bytes32 indexed contractId);
+    event HTLCRefund(bytes32 indexed contractId);
 
     struct HTLContract {
         address sender;   
@@ -99,8 +101,7 @@ contract HashedTimeLockERC721 {
         HTLContract storage c = contracts[contractId];
         c.isWithdraw = true;
         ERC721(c.tokenContract).transferFrom(address(this), c.receiver, c.tokenId);
-        // todo emit event
-
+        emit HTLCWithdraw(contractId);
         return true;
     }
 
@@ -120,8 +121,7 @@ contract HashedTimeLockERC721 {
         c.isRefund = true;
         ERC721(c.tokenContract).transferFrom(address(this), c.sender, c.tokenId);
 
-        // todo emit event
-
+        emit HTLCRefund(contractId);
         return true;
 
     }

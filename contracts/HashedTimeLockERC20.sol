@@ -14,6 +14,9 @@ contract HashedTimeLockERC20 {
         uint timelock
     );
 
+    event HTLCWithdraw(bytes32 indexed contractId);
+    event HTLCRefund(bytes32 indexed contractId);
+
     struct HTLContract {
         address sender;    // 
         address receiver;  // 
@@ -104,6 +107,7 @@ contract HashedTimeLockERC20 {
         c.isWithdraw = true;
         ERC20(c.tokenContract).transfer(c.receiver, c.amount);
         // todo emit event
+        emit HTLCWithdraw(contractId);
 
         return true;
     }
@@ -124,8 +128,7 @@ contract HashedTimeLockERC20 {
         c.isRefund = true;
         ERC20(c.tokenContract).transfer(c.sender, c.amount);
 
-        // todo emit event
-
+        emit HTLCRefund(contractId);
         return true;
 
     }
