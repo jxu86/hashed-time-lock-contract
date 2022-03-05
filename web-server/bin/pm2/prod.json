@@ -1,7 +1,7 @@
 {
   "apps": [
     {
-      "name": "emoji-server-7100",
+      "name": "htlc-server-7100",
       "interpreter": "node@12.10.0",
       "script": "bin/www",
       "watch": false,

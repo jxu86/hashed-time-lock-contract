@@ -1,6 +1,7 @@
 const contract = require("@truffle/contract")
-
-class BaseWrapper {
+const Web3 = require('web3')
+const blockchainConfig = require('config').get('blockchain')
+class BaseHTLC {
   /**
    * For additional information concerning the constructor parameters,
    * @see https://www.npmjs.com/package/@truffle/contract
@@ -8,10 +9,11 @@ class BaseWrapper {
    *
    */
   constructor(contractJson, provider, optionalAddress) {
-    this.hashedTimelockContract = contract(contractJson)
-    if (provider !== null) {
-      this.hashedTimelockContract.setProvider(provider)
-    }
+    this.htlc = contract(contractJson)
+    if (provider == null) {
+      provider = new Web3.providers.HttpProvider(blockchainConfig.rpc)
+    } 
+    this.htlc.setProvider(provider)
     this.address = optionalAddress
   }
 
@@ -39,18 +41,17 @@ class BaseWrapper {
   /**
    * @param contractId bytes 32
    */
-  getContract(contractId) {
+  getContractDetail(contractId) {
     return this.getContractInstance().then((instance) => {
-      // truffle should know using a call here
-      return instance.getContract(contractId)
+      return instance.getContractDetail(contractId)
     })
   }
 
   getContractInstance() {
     if (this.address !== undefined && this.address !== null) {
-      return this.hashedTimelockContract.at(this.address)
+      return this.htlc.at(this.address)
     }
-    return this.hashedTimelockContract.deployed()
+    return this.htlc.deployed()
   }
 
   setAddress(address) {
@@ -62,4 +63,4 @@ class BaseWrapper {
   }
 }
 
-module.exports = BaseWrapper
+module.exports = BaseHTLC

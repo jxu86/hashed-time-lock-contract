@@ -1,26 +1,6 @@
 {
-  "application": "htlc_server",
-  "database": {
-    "mongodb": [
-      {
-        "name": "db",
-        "url": "mongodb://127.0.0.1:27017/htlc_server",
-        "options": {}
-      }
-    ],
-    "redis": [
-      {
-        "name": "redis",
-        "host": "127.0.0.1",
-        "port": 6379,
-        "password" : "nowdone2go"
-      }
-    ]
-  },
+  "application": "htlc-server",
   "blockchain": {
-    "rpc": "http://10.252.101.3:8200",
-    "emojiContractAddress": "0x48ec28A7F796308530fB0eB216C2faC3d1bb17cF",
-    "enabled": false
+    "rpc": "http://127.0.0.1:7545"
   }
-
 }

@@ -1,8 +1,8 @@
 {
-    "name": "emoji-server",
+    "name": "htlc-server",
     "version": "0.0.1",
-    "description": "表情包项目后端API文档",
-    "title": "emoji-server API",
+    "description": "htlc server",
+    "title": "htlc-server API",
     "url" : "http://localhost:3000/api/v1",
     "sampleUrl": "http://localhost:3000/api/v1",
     "forceLanguage":"zh-cn",

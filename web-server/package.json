@@ -1,5 +1,5 @@
 {
-  "name": "emoji-server",
+  "name": "htlc-server",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -41,6 +41,7 @@
     "web3": "^1.2.4"
   },
   "devDependencies": {
+    "@truffle/contract": "^4.4.11",
     "apidoc": "^0.19.1",
     "babel-plugin-add-module-exports": "^1.0.2",
     "babel-register": "^6.26.0",
