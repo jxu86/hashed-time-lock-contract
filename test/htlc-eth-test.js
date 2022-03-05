@@ -8,7 +8,7 @@ const {
     random32,
     txContractId,
     txGas,
-    txLogArgs,
+    delayMs,
 } = require('./utils/utils')
 const {assertEqualBN} = require('./utils/assert')
 
@@ -17,10 +17,6 @@ const HashedTimeLockETH = artifacts.require('./HashedTimeLockETH.sol')
 const hourSeconds = 3600
 const timeLock1Hour = nowSeconds() + hourSeconds
 const oneFinney = web3.utils.toWei(web3.utils.toBN(1), 'finney')
-const REQUIRE_FAILED_MSG = 'Returned error: VM Exception while processing transaction: revert'
-
-
-let delayMs = ms => new Promise(resolve => setTimeout(resolve, ms))
 
 contract('HashedTimeLockETH', accounts => {
     const sender = accounts[1]
@@ -39,20 +35,8 @@ contract('HashedTimeLockETH', accounts => {
                 value: oneFinney,
             }
         )
-        // console.log("txReceipt=>", txReceipt)
-        // const logArgs = txLogArgs(txReceipt)
-    
-        // const contractId = logArgs.contractId
-        // assert(isSha256Hash(contractId))
         const contractId = txContractId(txReceipt)
         assert(isSha256Hash(contractId))
-        // assert.equal(logArgs.sender, sender)
-        // assert.equal(logArgs.receiver, receiver)
-        // assertEqualBN(logArgs.amount, oneFinney)
-
-        // assert.equal(logArgs.hashlock, hashPair.hash)
-        // assert.equal(logArgs.timelock, timeLock1Hour)
-    
         const contractDeail = await htlc.getContractDetail.call(contractId)
         const contractDeailObj = htlcArrayToObj(contractDeail)
         assert.equal(contractDeailObj.sender, sender)
@@ -79,7 +63,41 @@ contract('HashedTimeLockETH', accounts => {
         }
     })
 
-    it('withdraw should pass send receiver eth when the correct secret', async () => {
+    it('createContract should fail when time lock has expired', async () => {
+        const hashPair = newSecretHashPair()
+        const timelock = nowSeconds() - 1
+        const htlc = await HashedTimeLockETH.deployed()
+        try {
+          await htlc.newContract(receiver, hashPair.hash, timelock, {
+            from: sender,
+            value: oneFinney,
+          })
+    
+          assert.fail('expected failure when timelock has expired')
+        } catch (err) {
+          
+        }
+    })
+
+    it('createContract should fail when contractId has existed', async () => {
+        const hashPair = newSecretHashPair()
+        const htlc = await HashedTimeLockETH.deployed()
+        await htlc.createContract(receiver, hashPair.hash, timeLock1Hour, {
+            from: sender,
+            value: oneFinney,
+        })
+        try {
+            await htlc.createContract(receiver, hashPair.hash, timeLock1Hour, {
+                from: sender,
+                value: oneFinney,
+            })
+            assert.fail('expected failure when the contractId has existed')
+        } catch (err) {
+          
+        }
+    })
+
+    it('withdraw should pass when with the correct secret', async () => {
         const hashPair = newSecretHashPair()
         const htlc = await HashedTimeLockETH.deployed()
         const txReceipt = await htlc.createContract(
@@ -113,9 +131,59 @@ contract('HashedTimeLockETH', accounts => {
         assert.isTrue(contract.isWithdraw) 
         assert.isFalse(contract.isRefund) 
         // assert.equal(contract.secret, hashPair.secret)
+    })
+
+    it('withdraw should fail with wrong secret', async () => {
+        const hashPair = newSecretHashPair()
+        const htlc = await HashedTimeLockETH.deployed()
+        const newContractTx = await htlc.createContract(
+          receiver,
+          hashPair.hash,
+          timeLock1Hour,
+          {
+            from: sender,
+            value: oneFinney,
+          }
+        )
+        const contractId = txContractId(newContractTx)
+    
+        const wrongSecret = bufToStr(random32())
+        try {
+          await htlc.withdraw(contractId, wrongSecret, {from: receiver})
+          assert.fail('expected failure due to 0 value transferred')
+        } catch (err) {
+        //   assert.isTrue(err.message.startsWith(REQUIRE_FAILED_MSG))
+        }
       })
 
-      it('refund should pass after timelock expiry', async () => {
+    it('withdraw should fail when timelock has expired', async () => {
+        const hashPair = newSecretHashPair()
+        const htlc = await HashedTimeLockETH.deployed()
+        const timelock1Second = nowSeconds() + 1
+
+        const newContractTx = await htlc.createContract(
+            receiver,
+            hashPair.hash,
+            timelock1Second,
+            {
+            from: sender,
+            value: oneFinney,
+            }
+        )
+        const contractId = txContractId(newContractTx)
+
+        await delayMs(2000)
+
+        try {
+            await htlc.withdraw(contractId, hashPair.secret, {from: receiver})
+            assert.fail('expected failure due to 0 value transferred')
+        } catch (err) {
+            
+        }
+
+    })
+
+    it('refund should pass after timelock expiry', async () => {
         const hashPair = newSecretHashPair()
         const htlc = await HashedTimeLockETH.new()
         const timelock1Second = nowSeconds() + 1
@@ -145,6 +213,27 @@ contract('HashedTimeLockETH', accounts => {
         const contract = await htlc.getContractDetail.call(contractId)
         assert.isTrue(contract[6]) // refunded set
         assert.isFalse(contract[5]) // withdrawn still false
+
     })
-      
+    
+    it('refund should fail when the timelock has not expiry', async () => {
+        const hashPair = newSecretHashPair()
+        const htlc = await HashedTimeLockETH.deployed()
+        const newContractTx = await htlc.createContract(
+          receiver,
+          hashPair.hash,
+          timeLock1Hour,
+          {
+            from: sender,
+            value: oneFinney,
+          }
+        )
+        const contractId = txContractId(newContractTx)
+        try {
+            await htlc.refund(contractId, {from: sender})
+            assert.fail('expected failure due to timelock')
+        } catch (err) {
+            // assert.isTrue(err.message.startsWith(REQUIRE_FAILED_MSG))
+        }
+      })
 })

@@ -70,8 +70,6 @@ contract('HashedTimeLockERC20', accounts => {
         assertTokenBalance(sender, initialBalance - tokenAmount)
         assertTokenBalance(htlc.address, tokenAmount)
 
-        // const logArgs = txLogArgs(txReceipt)
-        // const contractId = logArgs.contractId
         const contractId = txContractId(txReceipt)
         assert(isSha256Hash(contractId))
         
@@ -86,6 +84,8 @@ contract('HashedTimeLockERC20', accounts => {
         assert.isFalse(contractDeailObj.isWithdraw)
         assert.isFalse(contractDeailObj.isRefund)
     })
+
+    
 
     it('withdraw should send receiver funds when given the correct secret', async () => {
         const hashPair = newSecretHashPair()
