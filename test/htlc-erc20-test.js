@@ -1,4 +1,6 @@
 const {
+    bufToStr,
+    random32,
     htlcERC20ArrayToObj,
     isSha256Hash,
     newSecretHashPair,
@@ -7,6 +9,7 @@ const {
     delayMs,
 } = require('./utils/utils')
 const {assertEqualBN} = require('./utils/assert')
+const { time } = require('console')
 
 const HashedTimeLockERC20 = artifacts.require('./HashedTimeLockERC20.sol')
 const TestERC20 = artifacts.require('./erc-token/TestERC20.sol')
@@ -102,7 +105,7 @@ contract('HashedTimeLockERC20', accounts => {
           }
       })
 
-      it('createContract should fail with no approve', async () => {
+    it('createContract should fail with no approve', async () => {
         const hashPair = newSecretHashPair()
         try {
             await htlc.createContract(
@@ -119,9 +122,8 @@ contract('HashedTimeLockERC20', accounts => {
         } catch (err) {
             assert.isTrue(err.message.includes(FAILED_MSG))
         }
-      })
+    })
     
-
     it('withdraw should pass with correct secret', async () => {
         const hashPair = newSecretHashPair()
         const txReceipt = await createContract({hashlock: hashPair.hash})
@@ -143,6 +145,35 @@ contract('HashedTimeLockERC20', accounts => {
         const contract = htlcERC20ArrayToObj(contractArr)
         assert.isTrue(contract.isWithdraw) // withdrawn set
         assert.isFalse(contract.isRefund) // refunded still false
+    })
+
+
+    it('withdraw should fail when secret is wrong', async () => {
+        const hashPair = newSecretHashPair()
+        const txReceipt = await createContract({hashlock: hashPair.hash})
+        const contractId = txContractId(txReceipt)
+    
+        const wrongSecret = bufToStr(random32())
+        try {
+            await htlc.withdraw(contractId, wrongSecret, {from: receiver})
+            assert.fail('fail when secret is wrong')
+        } catch (err) {
+            assert.isTrue(err.message.includes(FAILED_MSG))
+        }
+    })
+
+    it('withdraw should fail when time lock has expired', async () => {
+        const hashPair = newSecretHashPair()
+        const timelock1Second = nowSeconds() + 1
+        const txReceipt = await createContract({hashlock: hashPair.hash, timelock: timelock1Second})
+        const contractId = txContractId(txReceipt)
+        await delayMs(2000)
+        try {
+            await htlc.withdraw(contractId, hashPair.secret, {from: receiver})
+            assert.fail('fail when secret is wrong')
+        } catch (err) {
+            assert.isTrue(err.message.includes(FAILED_MSG))
+        }
     })
 
     it('refund should pass after timelock expiry', async () => {
@@ -170,6 +201,22 @@ contract('HashedTimeLockERC20', accounts => {
         const contract = htlcERC20ArrayToObj(contractArr)
         assert.isFalse(contract.isWithdraw)
         assert.isTrue(contract.isRefund)
+    })
+
+    it('refund should fail before timelock expiry', async () => {
+        const hashPair = newSecretHashPair()
+        await token.approve(htlc.address, tokenAmount, {from: sender})
+        const txReceipt = await createContract({
+          timelock: timeLock1Hour,
+          hashlock: hashPair.hash,
+        })
+        const contractId = txContractId(txReceipt)
+        try {
+            await htlc.refund(contractId, {from: sender})
+            assert.fail('fail before timelock expiry')
+        } catch (err) {
+            assert.isTrue(err.message.includes(FAILED_MSG))
+        }
     })
 
 })

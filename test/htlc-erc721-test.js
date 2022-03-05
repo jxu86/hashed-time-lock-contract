@@ -1,4 +1,6 @@
 const {
+    bufToStr,
+    random32,
     htlcERC721ArrayToObj,
     isSha256Hash,
     newSecretHashPair,
@@ -12,11 +14,13 @@ const HashedTimeLockERC721 = artifacts.require('./HashedTimeLockERC721.sol')
 const TestERC721 = artifacts.require('./erc-token/TestERC721.sol')
 const hourSeconds = 3600
 const timeLock1Hour = nowSeconds() + hourSeconds
-const initBalance = 20
+const initBalance = 30
+const FAILED_MSG = "satisfies all conditions set by Solidity `require` statements"
 
 contract('HashedTimeLockERC721', accounts => {
     const sender = accounts[1]
     const receiver = accounts[2]
+    let tokenNum = 1
 
     const assertTokenBalance = async (addr, tokenAmount, msg) => {
         assertEqualBN(
@@ -65,7 +69,8 @@ contract('HashedTimeLockERC721', accounts => {
     )}
 
     it('createContract should create a new contract and check contract data', async () => {
-        let tokenId = 1
+        let tokenId = tokenNum
+        tokenNum++
         const hashPair = newSecretHashPair()
         const txReceipt = await createContract({
             hashlock: hashPair.hash,
@@ -90,18 +95,66 @@ contract('HashedTimeLockERC721', accounts => {
         assert.isFalse(contractDeailObj.isRefund)
     })
 
-    it('withdraw should send receiver funds when given the correct secret', async () => {
-        let tokenId = 2
+    it('createContract should fail when tokenId not exist', async () => {
+        let tokenId = 100
+        const hashPair = newSecretHashPair()
+        try {
+            await createContract({
+                hashlock: hashPair.hash,
+                tokenId: tokenId,
+            }) 
+            assert.fail('fail when tokenId not exist')
+        } catch (err) {
+            assert.isTrue(err.message.includes(FAILED_MSG))
+        }
+    })
+
+    it('createContract should fail when time lock has expired', async () => {
+        let tokenId = tokenNum
+        tokenNum++
+        const hashPair = newSecretHashPair()
+        try {
+            await createContract({
+                hashlock: hashPair.hash,
+                timelock: nowSeconds() - 1,
+                tokenId: tokenId,
+            }) 
+            assert.fail('fail when time lock has expired')
+        } catch (err) {
+            assert.isTrue(err.message.includes(FAILED_MSG))
+        }
+    })
+
+    it('createContract should fail when contractId has exist', async () => {
+        let tokenId = tokenNum
+        tokenNum++
+        const hashPair = newSecretHashPair()
+        await createContract({
+            hashlock: hashPair.hash,
+            tokenId: tokenId,
+        }) 
+        try {
+            await createContract({
+                hashlock: hashPair.hash,
+                tokenId: tokenId,
+            }) 
+            assert.fail('fail when contractId has exist')
+        } catch (err) {
+            assert.isTrue(err.message.includes(FAILED_MSG))
+        }
+    })
+
+    it('withdraw should pass with correct secret', async () => {
+        let tokenId = tokenNum
+        tokenNum++
         const hashPair = newSecretHashPair()
         const txReceipt = await createContract({hashlock: hashPair.hash, tokenId: tokenId})
         const contractId = txContractId(txReceipt)
     
-        // receiver calls withdraw with the secret to claim the tokens
         await htlc.withdraw(contractId, hashPair.secret, {
           from: receiver,
         })
     
-        // Check tokens now owned by the receiver
         await assertTokenBalance(
           receiver,
           1,
@@ -114,8 +167,46 @@ contract('HashedTimeLockERC721', accounts => {
         assert.isFalse(contract.isRefund) // refunded still false
     })
 
+    it('withdraw should fail with wrong secret', async () => {
+        let tokenId = tokenNum
+        tokenNum++
+        const hashPair = newSecretHashPair()
+        const txReceipt = await createContract({hashlock: hashPair.hash, tokenId: tokenId})
+        const contractId = txContractId(txReceipt)
+        const wrongSecret = bufToStr(random32())
+        try {
+            await htlc.withdraw(contractId, wrongSecret, {
+                from: receiver,
+            })
+            assert.fail('fail with wrong secret')
+        } catch (err) {
+            assert.isTrue(err.message.includes(FAILED_MSG))
+        }
+      
+    })
+
+    it('withdraw should fail when time lock has expiry', async () => {
+        let tokenId = tokenNum
+        tokenNum++
+        const hashPair = newSecretHashPair()
+        const timelock1Second = nowSeconds() + 1
+        const txReceipt = await createContract({hashlock: hashPair.hash, timelock: timelock1Second, tokenId: tokenId})
+        const contractId = txContractId(txReceipt)
+        await delayMs(2000)
+        try {
+            await htlc.withdraw(contractId, hashPair.secret, {
+                from: receiver,
+            })
+            assert.fail('fail with wrong secret')
+        } catch (err) {
+            assert.isTrue(err.message.includes(FAILED_MSG))
+        }
+      
+    })
+
     it('refund should pass after timelock expiry', async () => {
-        let tokenId = 3
+        let tokenId = tokenNum
+        tokenNum++
         const hashPair = newSecretHashPair()
         // const curBlock = await web3.eth.getBlock('latest')
         // const timelock1Sec = curBlock.timestamp + 1
@@ -145,4 +236,27 @@ contract('HashedTimeLockERC721', accounts => {
         assert.isTrue(contract.isRefund)
     })
 
+    it('refund should fail when time lock has not expiry', async () => {
+        let tokenId = tokenNum
+        tokenNum++
+        const hashPair = newSecretHashPair()
+    
+        await token721.approve(htlc.address, tokenId, {from: sender})
+        const txReceipt = await createContract({
+          timelock: timeLock1Hour,
+          hashlock: hashPair.hash,
+          tokenId:  tokenId,
+        })
+        const contractId = txContractId(txReceipt)
+
+        try {
+            await htlc.refund(contractId, {from: sender})
+            assert.fail('fail when time lock has not expiry')
+        } catch (err) {
+            assert.isTrue(err.message.includes(FAILED_MSG))
+        }
+
+        
+        
+    })
 })
