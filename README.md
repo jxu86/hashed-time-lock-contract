@@ -35,6 +35,25 @@ npm run
 ![](docs/htlc-erc20-refund.jpeg)
 
 
+## The Contract interface
+### HashedTimeLockETH
+* `createContract(address payable receiver, bytes32 hashlock, uint timelock)` create a eth contract with send eth amount
+*  `withdraw(bytes32 contractId, bytes32 secret)` receiver withraw eth with contractId and secret
+*  `refund(bytes32 contractId)` refund eth to sender when time lock expiry
+*  `getContractDetail(bytes32 contractId)` get info of contract 
+
+### HashedTimeLockERC20
+* `createContract(address receiver, address tokenContract, uint256 amount, bytes32 hashlock, uint timelock) ` create a erc20 contract
+*  `withdraw(bytes32 contractId, bytes32 secret)` receiver withraw erc20 token with contractId and secret
+*  `refund(bytes32 contractId)` refund erc20 token to sender when time lock expiry
+*  `getContractDetail(bytes32 contractId)` get info of contract 
+
+### HashedTimeLockERC20
+* `createContract(address receiver, address tokenContract, uint256 tokenId, bytes32 hashlock, uint timelock)` create a erc721 contract
+*  `withdraw(bytes32 contractId, bytes32 secret)` receiver withraw erc721 token with contractId and secret
+*  `refund(bytes32 contractId)` refund erc721 token to sender when time lock expiry
+*  `getContractDetail(bytes32 contractId)` get info of contract 
+
 ## TODO
 * Complete the web-server according to the business logic
 * Increase unit test coverage
