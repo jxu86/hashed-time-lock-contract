@@ -100,6 +100,7 @@ contract HashedTimeLockERC721 {
 
         HTLContract storage c = contracts[contractId];
         c.isWithdraw = true;
+        c.secret = secret;
         ERC721(c.tokenContract).transferFrom(address(this), c.receiver, c.tokenId);
         emit HTLCWithdraw(contractId);
         return true;

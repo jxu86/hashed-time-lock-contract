@@ -91,7 +91,9 @@ contract HashedTimeLockETH {
 
         HTLContract storage c = contracts[contractId];
         c.isWithdraw = true;
+        c.secret = secret;
         c.receiver.transfer(c.amount);
+        
 
         emit HTLCWithdraw(contractId);
 

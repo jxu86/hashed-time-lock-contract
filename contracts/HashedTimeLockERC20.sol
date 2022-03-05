@@ -105,6 +105,7 @@ contract HashedTimeLockERC20 {
 
         HTLContract storage c = contracts[contractId];
         c.isWithdraw = true;
+        c.secret = secret;
         ERC20(c.tokenContract).transfer(c.receiver, c.amount);
         // todo emit event
         emit HTLCWithdraw(contractId);
