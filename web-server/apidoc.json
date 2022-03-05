@@ -1,0 +1,13 @@
+{
+    "name": "emoji-server",
+    "version": "0.0.1",
+    "description": "表情包项目后端API文档",
+    "title": "emoji-server API",
+    "url" : "http://localhost:3000/api/v1",
+    "sampleUrl": "http://localhost:3000/api/v1",
+    "forceLanguage":"zh-cn",
+    "template": {
+      "withCompare": true,
+      "withGenerator": true
+    }
+  }

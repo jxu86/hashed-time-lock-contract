@@ -1,0 +1,15 @@
+{
+    "apps": [
+      {
+        "name": "emoji-server-3001",
+        // "interpreter": "node@10.16.0",
+        "script": "bin/www",
+        "watch": false,
+        "env": {
+          "NODE_ENV": "dev",
+          "PORT": "3001"
+        }
+      }
+    ]
+  }
+  
